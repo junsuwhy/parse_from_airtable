@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function parse_from_airtable_menu() {
+  /*
+   *$items['blog'] = array(
+   *  'title' => 'blogs',
+   *  'page callback' => 'blog_page',
+   *  'access arguments' => array('access content'),
+   *  'type' => MENU_SUGGESTED_ITEM,
+   *);
+   */
+  $items['airtable/%/%'] = array(
+    'title' => '',
+    'page callback' => '_parse_from_airtable_getAirtableItems',
+    'page arguments' => array(1,2),
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+function _parse_from_airtable_getAirtableItems($appID, $table){
+  header('Content-Type: application/json');
+  $table = urlencode($table);
+  $view = urlencode($_GET['view']);
+  $start_url = "https://api.airtable.com/v0/$appID/{$table}?view={$view}";
+  $result = _parse_from_airtable_retrieveAirtableAPI($start_url);
+  $items = $result->records;
+  // print(json_encode($items));
+  // exit;
+  while(!empty($result->offset)){
+    sleep(0.5);
+    $url = $start_url . "&offset={$result->offset}";
+    $result = _parse_from_airtable_retrieveAirtableAPI($url);
+    $items = array_merge($items, $result->records);
+  }
+
+  // $return = array();
+  // foreach ($items as $item) {
+  //   $return[$item->fields->{"名稱"}] = $item;
+  // }
+  echo json_encode($items);
+  exit;
+}
+
+function _parse_from_airtable_retrieveAirtableAPI($url){
+  $apikey = $_GET['apikey'];
+  $cmd = "curl '{$url}' -H 'Authorization: Bearer $apikey'";
+  // print($cmd);exit;
+  $result = json_decode(exec($cmd));
+  return $result;
+}
+
+function parse_from_airtable_init(){
+  
+}
